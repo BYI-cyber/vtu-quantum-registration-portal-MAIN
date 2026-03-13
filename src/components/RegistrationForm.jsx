@@ -167,7 +167,7 @@ export default function RegistrationForm({ onSuccess }) {
 
     // Project file validation based on event type
     if (eventType === 'Poster Presentation' && !projectFile) {
-      setProjectError('Please upload your Poster Image.');
+      setProjectError('Please upload your Poster abstract.');
       hasError = true;
     } else if (eventType === 'Qubithon (ideathon)' && !projectFile) {
       setProjectError('Please upload your Project PDF.');
@@ -472,7 +472,7 @@ export default function RegistrationForm({ onSuccess }) {
             </div>
 
             <FileField
-              label="Poster Image Upload"
+              label="Poster abstract Upload"
               customIcon={viteLogo}
               hint="JPG or PNG format • Max 10MB • Clear and readable"
               accept="image/jpeg,image/png"
