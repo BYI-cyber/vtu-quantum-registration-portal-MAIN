@@ -216,17 +216,16 @@ export default function RegistrationForm({ onSuccess }) {
         accommodation: data.accommodation,
         eid_url: eidUrl,
         ticket_url: ticketUrl,
-        project_upload_url: projectUploadUrl
+        project_upload_url: projectUploadUrl,
+        member_1_name: data.member_1_name || null,
+        member_2_name: data.member_2_name || null,
+        member_3_name: data.member_3_name || null,
+        member_4_name: data.member_4_name || null
       };
 
       const sheetsPayload = { ...payload };
 
       if (data.group_name && data.group_name.trim() !== '') {
-        sheetsPayload.member_1_name = data.member_1_name;
-        sheetsPayload.member_2_name = data.member_2_name;
-        sheetsPayload.member_3_name = data.member_3_name;
-        sheetsPayload.member_4_name = data.member_4_name;
-
         const members = [
           data.member_1_name,
           data.member_2_name,
