@@ -1,0 +1,130 @@
+i am creating a website to store the reserstration data in the data base                                          national Quantum Student Summit 2026
+Advanced Research & Technologies Pre-Registration Portal  Personal Information   helled by vtu belagavi       this are all the data colled  i a storing this data in the form fo supabase   i want to store the data in deive directely  in google spreed sheet     can i do it
+Full Name *
+Email Address *
+Date of Birth
+WhatsApp Number *
+upload Eid * (For Event ID Card)
+
+Click to upload recent photo (JPG/PNG)
+Academic & Institutional Details
+Institution Name *
+Group / Team Name (Optional)
+Academic Category *
+Select Category...
+UG
+PG
+PhD
+Faculty
+Industry Professional
+Registration Type & Event Tracks
+Registration Type *
+Participant/PresenterAttendere (visiter)
+Presentation Format *
+Select Track *
+Quantum Hardware & Circuits ,Network Security & QKD, Quantum Cryptography & BlockchainQuantum Algorithms & FinanceQuantum Sensing & Metrology                                                             Qubithon (ideathon)                                                                                                                                                   
+Qubithon (ideathon)
+Select Domain *
+Healthcare & Medicine ,Electrical & Smart Grids ,Banking & FinanceSmart , Industry & Logistics
+I require campus accommodation during the summit duration.
+Submit Registration
+
+How the Data Flow Works
+To get your registration data from your website into a Google Sheet, you generally follow this path:
+
+The Website: User fills out the form and hits "Submit."
+
+Supabase: The data is stored in your PostgreSQL table, and the image is uploaded to Supabase Storage.
+
+The Trigger: A Supabase Edge Function or a Database Webhook detects the new entry.
+
+The Bridge: This trigger sends the data to a service like Make.com, Zapier, or a custom Google Apps Script.
+
+Google Sheets: The service appends a new row to your spreadsheet.
+
+: Google Apps Script (Free)
+If you want to avoid third-party monthly fees, you can write a small script inside Google Sheets.
+
+Open a Google Sheet -> Extensions -> Apps Script.
+
+Write a doPost(e) function that parses incoming JSON and adds a row.
+
+Deploy it as a Web App (set access to "Anyone, even anonymous").
+
+Use a Supabase Edge Function to fetch() that Web App URL whenever a registration occurs.
+How the "Always-On" Automation Works
+Vercel (Frontend): Your website is "Serverless." When a user clicks "Submit," Vercel wakes up for a split second to send the data and then goes back to sleep.
+
+Google Apps Script (Bridge): When you "Deploy as Web App," Google gives you a permanent URL. This URL is always "listening" for data from your website.
+
+The Result: The data moves from Website → Google Sheet entirely in the cloud.
+
+Step-by-Step: The "Zero Cost" Setup
+To get this working without a laptop being open, follow these steps:
+
+1. Prepare the Google Sheet
+Create a new sheet named "Quantum Summit Registrations".
+
+In the first row, type your headers: Timestamp, Full Name, Email, WhatsApp, Institution, Category, Track, Accommodation, PhotoURL.
+
+2. The Google Apps Script
+In your sheet, go to Extensions > Apps Script.
+
+Delete any code there and paste this:
+
+JavaScript
+function doPost(e) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var data = JSON.parse(e.postData.contents);
+    
+    // Append the data in the order of your columns
+    sheet.appendRow([
+      new Date(), // Timestamp
+      data.fullName,
+      data.email,
+      data.whatsapp,
+      data.institution,
+      data.category,
+      data.track,
+      data.accommodation,
+      data.photoUrl // Link from Supabase
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({"result":"success"})).setMimeType(ContentService.MimeType.JSON);
+  } catch (f) {
+    return ContentService.createTextOutput(JSON.stringify({"result":"error", "error": f})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+3. Deploy (The Most Important Part)
+Click the blue Deploy button > New Deployment.
+
+Select type: Web App.
+
+Description: Quantum Summit API.
+
+Execute as: Me (your email).
+
+Who has access: Anyone (This is required so your website can send data to it).
+
+Copy the Web App URL provided.
+
+4. Connect your Website (Vercel)
+In your frontend code (the React/HTML file hosted on Vercel), after you successfully save the data to Supabase, add a simple fetch command:
+
+JavaScript
+// Example of sending to Google Sheets after Supabase logic
+const googleScriptUrl = "YOUR_DEPLOYED_WEB_APP_URL_HERE";
+
+fetch(googleScriptUrl, {
+  method: "POST",
+  body: JSON.stringify({
+    fullName: "User Name",
+    email: "user@email.com",
+    // ... all other fields
+  })
+});
+Why this is better than keeping a laptop open:
+Reliability: Google’s servers have 99.9% uptime. Your home Wi-Fi doesn't.
+
+Concurrency: 100 students can register at the exact same second, and the script will handle them all.
