@@ -1,4 +1,5 @@
 import React from 'react';
+import logo from '../assets/logo.png';
 
 export default function Header() {
   return (
@@ -8,7 +9,7 @@ export default function Header() {
       </div>
       <div className="header-main">
         <div className="header-logo-container">
-          <div className="header-logo-fallback" aria-label="NQSS Logo">NQ</div>
+          <img src={logo} alt="NQSS Logo" className="header-logo-img" />
         </div>
         <div className="header-text">
           <span className="event-tag">NQSS 2026</span>

@@ -3,7 +3,7 @@
 ## Step 1: Create Your Google Sheet
 1. Create a new Google Sheet named `NQSS 2026 Registrations`.
 2. In **Row 1**, add these headers exactly:
-   `Timestamp | Full Name | Email | WhatsApp | Date of Birth | Institution | Group Name | Academic Category | Event Type | Track/Domain | Accommodation | EID URL | Ticket URL | Project Upload URL`
+   `Timestamp | Full Name | Email | WhatsApp | Date of Birth | Institution | Group Name | Member 1 Name | Member 2 Name | Member 3 Name | Member 4 Name | Academic Category | Event Type | Track/Domain | Accommodation | EID URL | Ticket URL | Project Upload URL`
 
 ## Step 2: Open Apps Script
 1. In your Sheet, click **Extensions → Apps Script**.
@@ -31,6 +31,10 @@ function doPost(e) {
       data.date_of_birth || "",
       data.institution || "",
       data.group_name || "",
+      data.member_1_name || "",
+      data.member_2_name || "",
+      data.member_3_name || "",
+      data.member_4_name || "",
       data.academic_category || "",
       data.event_type || "",
       data.track_domain || "",
