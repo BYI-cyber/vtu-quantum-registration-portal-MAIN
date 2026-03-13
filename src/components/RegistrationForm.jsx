@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { supabase } from '../supabaseClient';
 
@@ -114,6 +114,41 @@ export default function RegistrationForm({ onSuccess }) {
   const [progressSteps, setProgressSteps] = useState([]);
 
   const eventType = watch('event_type');
+  const groupName = watch('group_name');
+
+  const [groupNameError, setGroupNameError] = useState('');
+  const [isCheckingGroup, setIsCheckingGroup] = useState(false);
+
+  useEffect(() => {
+    if (!groupName || groupName.trim() === '') {
+      setGroupNameError('');
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      setIsCheckingGroup(true);
+      try {
+        const { data, error } = await supabase
+          .from('registrations')
+          .select('group_name')
+          .ilike('group_name', groupName.trim())
+          .limit(1);
+
+        if (error) {
+          console.error('Error checking group name:', error);
+        } else if (data && data.length > 0) {
+          setGroupNameError('This name already occupied enter other name');
+        } else {
+          setGroupNameError('');
+        }
+      } catch (err) {
+        console.error('Error checking group name:', err);
+      }
+      setIsCheckingGroup(false);
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [groupName]);
 
   const addStep = (text, done = false) =>
     setProgressSteps((prev) => [...prev, { text, done }]);
@@ -137,6 +172,8 @@ export default function RegistrationForm({ onSuccess }) {
     } else {
       setProjectError('');
     }
+
+    if (groupNameError) hasError = true;
 
     if (hasError) return;
 
@@ -179,12 +216,32 @@ export default function RegistrationForm({ onSuccess }) {
         project_upload_url: projectUploadUrl
       };
 
+      const sheetsPayload = { ...payload };
+
+      if (data.group_name && data.group_name.trim() !== '') {
+        sheetsPayload.member_1_name = data.member_1_name;
+        sheetsPayload.member_2_name = data.member_2_name;
+        sheetsPayload.member_3_name = data.member_3_name;
+        sheetsPayload.member_4_name = data.member_4_name;
+
+        const members = [
+          data.member_1_name,
+          data.member_2_name,
+          data.member_3_name,
+          data.member_4_name
+        ].filter(Boolean);
+
+        if (members.length > 0) {
+          payload.full_name = `${data.full_name} (Team: ${members.join(', ')})`;
+        }
+      }
+
       const { error: dbError } = await supabase.from('registrations').insert([payload]);
       if (dbError) throw dbError;
       markLastDone();
 
       addStep('Synchronizing records…');
-      await sendToGoogleSheets(payload);
+      await sendToGoogleSheets(sheetsPayload);
       markLastDone();
 
       onSuccess({ ...payload });
@@ -329,12 +386,40 @@ export default function RegistrationForm({ onSuccess }) {
           <label htmlFor="group_name">Team Name <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(Optional for Qubithon)</span></label>
           <input
             id="group_name"
-            className="form-control"
+            className={`form-control ${groupNameError ? 'is-invalid' : ''}`}
             type="text"
             placeholder="Leave blank if registering as an individual"
             {...register('group_name')}
           />
+          {isCheckingGroup && <div className="field-hint" style={{ marginTop: '6px', fontSize: '0.85rem', color: 'var(--accent-gold)' }}>Checking availability...</div>}
+          {groupNameError && (
+            <div className="field-error" style={{ marginTop: '6px' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              {groupNameError}
+            </div>
+          )}
         </div>
+
+        {groupName && groupName.trim() !== '' && (
+          <div style={{ marginTop: '24px', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', background: 'rgba(255, 255, 255, 0.02)' }}>
+            <div className="section-title" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>Team Members (4 People)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '16px' }}>
+              {[1, 2, 3, 4].map((num) => (
+                <div key={num} className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor={`member_${num}_name`}>Member {num} Name <span className="req">*</span></label>
+                  <input
+                    id={`member_${num}_name`}
+                    className={`form-control ${errors[`member_${num}_name`] ? 'is-invalid' : ''}`}
+                    type="text"
+                    placeholder={`Name of Member ${num}`}
+                    {...register(`member_${num}_name`, { required: `Member ${num} name is required` })}
+                  />
+                  {renderError(`member_${num}_name`)}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Section 4: Event Selection ────────────────────────────── */}
