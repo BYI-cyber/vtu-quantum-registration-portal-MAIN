@@ -8,11 +8,7 @@ export default function Footer() {
           <div className="footer-brand">
             <strong>National Quantum Student Summit 2026</strong>
             <p>Organized by Visvesvaraya Technological University (VTU), Belagavi</p>
-          </div>
-          <div className="footer-contact">
-            <p style={{ marginTop: '8px' }}>For registration issues, contact: <br /><a href="mailto:vtunqsswebsites@gmail.com">vtunqsswebsites@gmail.com</a></p>
-          </div>
-        </div>
+      
         <div className="footer-bottom">
           <span> 2026 NQSS — VTU Belagavi. All rights reserved.</span>
           <span className="footer-disclaimer">
