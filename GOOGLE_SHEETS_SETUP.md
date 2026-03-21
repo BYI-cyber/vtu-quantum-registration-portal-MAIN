@@ -3,7 +3,7 @@
 ## Step 1: Create Your Google Sheet
 1. Create a new Google Sheet named `NQSS 2026 Registrations`.
 2. In **Row 1**, add these headers exactly:
-   `Timestamp | Full Name | Email | WhatsApp | Date of Birth | Institution | Group Name | Member 1 Name | Member 2 Name | Member 3 Name | Member 4 Name | Academic Category | Event Type | Track/Domain | Accommodation | EID URL | Ticket URL | Project Upload URL`
+   `Timestamp | Full Name | Email | Gender | WhatsApp | Booking ID | Date of Birth | Institution | Group Name | Member 1 Name | Member 2 Name | Member 3 Name | Member 4 Name | Academic Category | Event Type | Track/Domain | Accommodation | EID URL | Ticket URL | Project Upload URL | EID Drive Link | Ticket Drive Link | Project Drive Link`
 
 ## Step 2: Open Apps Script
 1. In your Sheet, click **Extensions → Apps Script**.
@@ -12,43 +12,108 @@
 ```javascript
 function doPost(e) {
   try {
-    // 1. Get the sheet by name (prevents appending to wrong tab)
-    // Make sure your tab is named "Sheet1" or change this name
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Sheet1") || 
-                SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
-    
-    // 2. Log arrival (check "Executions" tab to see this)
-    console.log("Request received: " + e.postData.contents);
-    
+    // --- 1. SETTINGS: Grab both sheets ---
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet1 = ss.getSheetByName("Sheet1") || ss.getSheets()[0];
+    var sheet2 = ss.getSheetByName("Sheet2") || ss.getSheets()[1]; // Second sheet for mirror copy
+
+    // Replace with your Google Drive Folder ID from the URL
+    var folderId = "1n6N6BH5f3U3XoUF-CQQyorpxpYVzJMM_";
+    var folder = DriveApp.getFolderById(folderId);
+
+    // --- 2. PARSE INCOMING DATA ---
     var data = JSON.parse(e.postData.contents);
 
-    // 3. Append the row
-    sheet.appendRow([
-      new Date(),
-      data.full_name || "",
-      data.email || "",
-      data.whatsapp || "",
-      data.date_of_birth || "",
-      data.institution || "",
-      data.group_name || "",
-      data.member_1_name || "",
-      data.member_2_name || "",
-      data.member_3_name || "",
-      data.member_4_name || "",
+    // --- 3. HELPER: Download file from Supabase and save to Drive ---
+    function saveToDrive(url, prefix) {
+      if (!url || !folder) return "";
+      try {
+        var response = UrlFetchApp.fetch(url);
+        var blob = response.getBlob();
+        var fileName = prefix + "_" + data.full_name + "_" + Date.now() + "_" + blob.getName();
+        blob.setName(fileName);
+        var file = folder.createFile(blob);
+        return file.getUrl();
+      } catch (f) {
+        console.log("Drive Backup Failed for " + prefix + ": " + f.toString());
+        return "Backup Error";
+      }
+    }
+
+    // --- 4. BACKUP FILES FROM SUPABASE TO GOOGLE DRIVE ---
+    var eidDriveUrl     = saveToDrive(data.eid_url, "EID");
+    var ticketDriveUrl  = saveToDrive(data.ticket_url, "Ticket");
+    var projectDriveUrl = saveToDrive(data.project_upload_url, "Project");
+
+    // --- 5. BUILD THE ROW (same data for both sheets) ---
+    var row = [
+      new Date(),                       // Timestamp
+      data.full_name        || "",
+      data.email            || "",
+      data.gender           || "",
+      data.whatsapp         || "",
+      data.booking_id       || "",
+      data.date_of_birth    || "",
+      data.institution      || "",
+      data.group_name       || "",
+      data.member_1_name    || "",
+      data.member_2_name    || "",
+      data.member_3_name    || "",
+      data.member_4_name    || "",
       data.academic_category || "",
-      data.event_type || "",
-      data.track_domain || "",
-      data.accommodation || "",
-      data.eid_url || "",
-      data.ticket_url || "",
-      data.project_upload_url || ""
-    ]);
+      data.event_type       || "",
+      data.track_domain     || "",
+      data.accommodation    || "",
+      data.eid_url          || "",      // Supabase storage link
+      data.ticket_url       || "",      // Supabase storage link
+      data.project_upload_url || "",    // Supabase storage link
+      eidDriveUrl,                      // Google Drive backup link
+      ticketDriveUrl,                   // Google Drive backup link
+      projectDriveUrl                   // Google Drive backup link
+    ];
+
+    // --- 6. SAVE TEXT BACKUP FILE TO GOOGLE DRIVE ---
+    if (folder) {
+      var backupName = "Backup_" + data.full_name + "_" + Date.now() + ".txt";
+      var content =
+        "FULL REGISTRATION BACKUP\n" +
+        "==========================\n" +
+        "Timestamp: "        + new Date()                         + "\n" +
+        "Full Name: "        + (data.full_name        || "N/A")   + "\n" +
+        "Email: "            + (data.email            || "N/A")   + "\n" +
+        "Gender: "           + (data.gender           || "N/A")   + "\n" +
+        "WhatsApp: "         + (data.whatsapp         || "N/A")   + "\n" +
+        "Booking ID: "       + (data.booking_id       || "N/A")   + "\n" +
+        "Date of Birth: "    + (data.date_of_birth    || "N/A")   + "\n" +
+        "Institution: "      + (data.institution      || "N/A")   + "\n" +
+        "Group Name: "       + (data.group_name       || "Individual") + "\n" +
+        "Category: "         + (data.academic_category|| "N/A")   + "\n" +
+        "Event: "            + (data.event_type       || "N/A")   + "\n" +
+        "Track/Domain: "     + (data.track_domain     || "N/A")   + "\n" +
+        "Accommodation: "    + (data.accommodation    || "N/A")   + "\n" +
+        "--------------------------\n" +
+        "SUPABASE LINKS:\n" +
+        "EID:     "          + (data.eid_url           || "")      + "\n" +
+        "Ticket:  "          + (data.ticket_url        || "")      + "\n" +
+        "Project: "          + (data.project_upload_url|| "")      + "\n" +
+        "--------------------------\n" +
+        "DRIVE BACKUP LINKS:\n" +
+        "EID:     "          + eidDriveUrl                         + "\n" +
+        "Ticket:  "          + ticketDriveUrl                      + "\n" +
+        "Project: "          + projectDriveUrl                     + "\n";
+      folder.createFile(backupName, content);
+    }
+
+    // --- 7. WRITE SAME ROW TO BOTH SHEET1 AND SHEET2 ---
+    sheet1.appendRow(row);
+    if (sheet2) sheet2.appendRow(row); // Mirror copy to Sheet2
 
     return ContentService
       .createTextOutput(JSON.stringify({ result: "success" }))
       .setMimeType(ContentService.MimeType.JSON);
+
   } catch (err) {
-    console.log("Error: " + err.toString()); // This will show why it failed in Executions
+    console.log("Error: " + err.toString());
     return ContentService
       .createTextOutput(JSON.stringify({ result: "error", error: err.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
